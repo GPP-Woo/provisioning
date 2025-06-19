@@ -1,0 +1,26 @@
+# Dev settings
+.env
+# IntelliJDea
+.idea/
+.project
+# Helm
+charts/**/charts/
+charts/**/Chart.lock
+http-client.private.env.json
+# Tofu/Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/crash.log
+**/crash.*.log
+**/*.tfvars
+**/*.tfvars.json
+**/override.tf
+**/override.tf.json
+**/*_override.tf
+**/*_override.tf.json
+**/.terraform.tfstate.lock.info
+**/*tfplan*
+**/.terraformrc
+**/terraform.rc
+# !example_override.tf
