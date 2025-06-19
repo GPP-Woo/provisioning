@@ -2,23 +2,20 @@ provider "azurerm" {
   # subscription_id = "Please setup .env file or set ARM_SUBSCRIPTION_ID environment value"
   features {}
 }
-
-variable "rg_name" {
-  description = "Resource Group Name"
-  type        = string
-  default     = "rg-weu-aks"
-}
-
 variable "location" {
   description = "Azure Region"
   type        = string
   default     = "West Europe"
 }
-
+variable "rg_name" {
+  description = "Resource Group Name"
+  type        = string
+  default     = "woo-aks"
+}
 variable "acr_name" {
   description = "Azure Container Registry Name"
   type        = string
-  default     = "acrRegistry"
+  default     = "wooRegistry"
 }
 
 variable "aks_name" {
@@ -30,18 +27,18 @@ variable "aks_name" {
 variable "storage_account_name" {
   description = "Storage Account Name"
   type        = string
-  default     = "saweuwoo"
+  default     = "woo"
 }
 
-variable "postgres_pv_name" {
-  description = "Postgres Persistent Volume Name"
-  type        = string
-}
+# variable "postgres_pv_name" {
+#   description = "Postgres Persistent Volume Name"
+#   type        = string
+# }
 
-variable "postgres_pvc_name" {
-  description = "Postgres Persistent Volume Claim Name"
-  type        = string
-}
+# variable "postgres_pvc_name" {
+#   description = "Postgres Persistent Volume Claim Name"
+#   type        = string
+# }
 
 
 module "resource_group" {
@@ -49,27 +46,25 @@ module "resource_group" {
   name     = var.rg_name
   location = var.location
 }
+module "acr" {
+  source   = "./modules/acr"
+  name     = var.acr_name
+  location = var.location
+  rg_name  = var.rg_name
+}
 
 # module "aks" {
 #   source   = "./modules/aks"
-#   rg_name  = var.rg_name
-#   location = var.location
 #   name     = var.aks_name
-# }
-
-# module "acr" {
-#   source   = "./modules/acr"
-#   rg_name  = var.rg_name
 #   location = var.location
-#   name     = var.acr_name
-
+#   rg_name  = var.rg_name
 # }
 
 # module "storage" {
 #   source   = "./modules/storage"
-#   rg_name  = var.rg_name
-#   location = var.location
 #   name     = var.storage_account_name
+#   location = var.location
+#   rg_name  = var.rg_name
 # }
 
 # module "cloudnativepg" {
