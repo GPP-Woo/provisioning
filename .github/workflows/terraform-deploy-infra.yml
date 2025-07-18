@@ -31,7 +31,7 @@ jobs:
       tf_storage_account_name: "wooprovisioning"
       tf_state_container: "github-oidc-terraform-tfstate"
       tf_state_key: "terraform.tfstate"
-      working_directory: infra
+      working_directory: infra/environments/prod
 
     steps:
     - name: Checkout source
