@@ -48,6 +48,15 @@ variable "hub_vnet_id" {
   type        = string
   description = "The HUB vnet_id"
 }
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
+}
 
 resource "azurerm_container_registry" "acr" {
   name                          = var.name
@@ -56,12 +65,14 @@ resource "azurerm_container_registry" "acr" {
   sku                           = var.sku
   admin_enabled                 = var.admin_enabled
   public_network_access_enabled = var.public_network_access_enabled
+  tags                          = var.tags
 }
 
 
 resource "azurerm_private_dns_zone" "acr" {
   name                = "privatelink.azurecr.io"
   resource_group_name = var.rg_name
+  tags                = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "acr1" {
@@ -69,6 +80,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "acr1" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.acr.name
   virtual_network_id    = var.hub_vnet_id
+  tags                  = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "acr2" {
@@ -76,6 +88,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "acr2" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.acr.name
   virtual_network_id    = var.aks_vnet_id
+  tags                  = var.tags
 }
 
 resource "azurerm_private_endpoint" "acr" {
@@ -84,6 +97,7 @@ resource "azurerm_private_endpoint" "acr" {
   location            = var.location
   resource_group_name = var.rg_name
   subnet_id           = var.private_endpoint_subnetid
+  tags                = var.tags
 
   private_service_connection {
     name                           = "psc-${var.prefix}acr-001"

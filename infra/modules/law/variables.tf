@@ -19,3 +19,12 @@ variable "retention_in_days" {
   description = "The log retention time in days"
   default     = 30
 }
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
+}

@@ -5,6 +5,7 @@ resource "azurerm_log_analytics_workspace" "law" {
   location            = var.location
   sku                 = var.sku
   retention_in_days   = var.retention_in_days
+  tags                = var.tags
 }
 
 resource "azurerm_log_analytics_solution" "law" {
@@ -13,6 +14,7 @@ resource "azurerm_log_analytics_solution" "law" {
   workspace_name        = azurerm_log_analytics_workspace.law.name
   location              = var.location
   resource_group_name   = var.rg_name
+  tags                  = var.tags
 
   plan {
     publisher = "Microsoft"

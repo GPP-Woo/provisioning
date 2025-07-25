@@ -1,7 +1,6 @@
 variable "environment" {
   description = "Environment suffix used for all resources"
   type        = string
-  default     = ""
 }
 variable "project_name" {
   description = "Project name used for all resources"
@@ -32,6 +31,16 @@ variable "aks_name" {
   type        = string
   default     = null
 }
+variable "kubernetes_version" {
+  type        = string
+  default     = "1.33.0"
+  description = "Kubernetes version for AKS"
+}
+variable "law_name" {
+  description = "Azure Log Analytics Workspace Name"
+  type        = string
+  default     = null
+}
 
 # variable "storage_account_name" {
 #   description = "Storage Account Name"
@@ -53,8 +62,8 @@ variable "resource_tag_values" {
   description = "Resource Tag Values"
   type        = map(string)
   default = {
-    "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
-    "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
-    "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+    Provisioner = "Terraform"
+    Environment = "<not set>"
+    # "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
   }
 }

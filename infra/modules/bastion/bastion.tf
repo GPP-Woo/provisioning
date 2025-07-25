@@ -42,11 +42,25 @@ variable "enable_windows_vm" {
   type    = bool
   default = false
 }
+variable "k8s_io_version" {
+  type        = string
+  default     = "1.33"
+  description = "pkgs.k8s.io repo version"
+}
 variable "kube_config" {
   type        = string
   sensitive   = true
   description = "Kubeconfig contents to install for <vm_username>"
   default     = null
+}
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
 }
 
 resource "random_pet" "vm_password" {
@@ -60,6 +74,7 @@ resource "random_pet" "vm_password" {
 
 locals {
   vm_password = coalesce(var.vm_password, random_pet.vm_password.id)
+
   custom_data = var.kube_config == null ? null : <<CUSTOM_DATA
 #!/bin/bash
 sudo -i
@@ -70,11 +85,31 @@ ${var.kube_config}
 EOT
 chown -R ${var.vm_username}: /home/${var.vm_username}/.kube
 chmod 0600 $KC
+curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" \
+  | tee /etc/apt/sources.list.d/helm-stable-debian.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v${var.k8s_io_version}/deb/Release.key \
+  | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${var.k8s_io_version}/deb/ /' \
+  | tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubeadm kubectl helm # might pin versions, e.g. "=1.32.4-1.1"
 cat << EOF > /etc/customdata
 ${var.prefix} kubeconfig installed in /home/${var.vm_username}/.kube/config.
 (Done.)
 EOF
 CUSTOM_DATA
+
+  ssh_access = var.enable_linux_vm == false ? null : <<SSH_ACCESS
+eval "cat $(tofu -chdir=infra/environments/... output -show-sensitive vm_privkey)" \
+  | install -m 0600 /dev/stdin ~/.ssh/vm1-${var.vm_username}
+cat <<PRIVKEY | install -m 0600 /dev/stdin ~/.ssh/vm1-${var.vm_username}
+${tls_private_key.vm1[0].private_key_openssh}
+PRIVKEY
+az network bastion ssh --name ${azurerm_bastion_host.bastion.name} --resource-group ${var.rg_name} \
+  --target-ip-address ${azurerm_linux_virtual_machine.vm1[0].private_ip_address} --username ${var.vm_username} \
+  --auth-type ssh-key --ssh-key ~/.ssh/vm1-${var.vm_username}
+SSH_ACCESS
 }
 
 # Setup a Bastion
@@ -84,13 +119,14 @@ resource "azurerm_public_ip" "bastion" {
   resource_group_name = var.rg_name
   allocation_method   = "Static"
   sku                 = "Standard"
-
+  tags                = var.tags
 }
 
 resource "azurerm_bastion_host" "bastion" {
   name                = coalesce(var.name, "bas-${var.prefix}-001")
   location            = var.location
   resource_group_name = var.rg_name
+  tags                = var.tags
   sku                 = "Standard"
   ip_connect_enabled  = true
   tunneling_enabled   = true
@@ -106,6 +142,7 @@ resource "azurerm_network_interface" "vm1nic" {
   name                = "nic-vm1"
   location            = var.location
   resource_group_name = var.rg_name
+  tags                = var.tags
 
   ip_configuration {
     name                          = "internal"
@@ -119,6 +156,7 @@ resource "azurerm_network_interface" "vm2nic" {
   name                = "nic-vm2"
   location            = var.location
   resource_group_name = var.rg_name
+  tags                = var.tags
 
   ip_configuration {
     name                          = "internal"
@@ -127,20 +165,23 @@ resource "azurerm_network_interface" "vm2nic" {
   }
 }
 
-
 # Generate a throw-away keypair, for disctributing kubeadm join arguments
-resource "tls_private_key" "vm1_ssh" {
+resource "tls_private_key" "vm1" {
   count     = var.enable_linux_vm ? 1 : 0
   algorithm = "ED25519"
   # rsa_bits  = 2048
 }
-
+moved {
+  from = tls_private_key.vm1_ssh
+  to   = tls_private_key.vm1
+}
 resource "azurerm_linux_virtual_machine" "vm1" {
   count               = var.enable_linux_vm ? 1 : 0
   name                = "vm-linux"
   resource_group_name = var.rg_name
   location            = var.location
   size                = "Standard_F2"
+  tags                = var.tags
   admin_username      = var.vm_username
   admin_password      = local.vm_password
   custom_data         = var.kube_config == null ? null : base64encode(local.custom_data)
@@ -150,7 +191,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
 
   admin_ssh_key {
     username   = var.vm_username
-    public_key = tls_private_key.vm1_ssh[0].public_key_openssh #("~/.ssh/id_rsa.pub")
+    public_key = tls_private_key.vm1[0].public_key_openssh #("~/.ssh/id_rsa.pub")
   }
 
   os_disk {
@@ -177,6 +218,7 @@ resource "azurerm_windows_virtual_machine" "vm2" {
   resource_group_name = var.rg_name
   location            = var.location
   size                = "Standard_D2s_v3"
+  tags                = var.tags
   admin_username      = var.vm_username
   admin_password      = local.vm_password
   network_interface_ids = [
@@ -196,7 +238,7 @@ resource "azurerm_windows_virtual_machine" "vm2" {
   }
 }
 
-output "bastion" {
+output "bastion_name" {
   value = azurerm_bastion_host.bastion.name
 }
 output "vm1_ip" {
@@ -209,5 +251,8 @@ output "vm_password" {
   value = local.vm_password
 }
 output "vm_privatekey" {
-  value = var.enable_linux_vm ? tls_private_key.vm1_ssh[0].private_key_openssh : null
+  value = var.enable_linux_vm ? tls_private_key.vm1[0].private_key_openssh : null
+}
+output "vm1_access_howto" {
+  value = var.enable_linux_vm ? local.ssh_access : null
 }

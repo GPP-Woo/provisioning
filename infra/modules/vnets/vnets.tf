@@ -3,9 +3,7 @@ resource "azurerm_virtual_network" "vnet_hub" {
   location            = var.location
   resource_group_name = var.rg_name
   address_space       = [var.hub_address_space]
-  tags = {
-    Environment = var.environment
-  }
+  tags                = var.tags
 }
 
 resource "azurerm_virtual_network" "vnet_aks" {
@@ -13,9 +11,7 @@ resource "azurerm_virtual_network" "vnet_aks" {
   location            = var.location
   resource_group_name = var.rg_name
   address_space       = [var.aks_address_space]
-  tags = {
-    Environment = var.environment
-  }
+  tags                = var.tags
 }
 
 resource "azurerm_virtual_network_peering" "to_vnet_aks" {

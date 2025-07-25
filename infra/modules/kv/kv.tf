@@ -42,11 +42,21 @@ variable "snet_utils_id" {
   type        = string
   description = "Utils subnet_id to expose the Key Vault"
 }
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
+}
 resource "azurerm_key_vault" "kv" {
   name                = coalesce(var.name, "kv-${var.prefix}-${var.locationcode}")
   location            = var.location
   resource_group_name = var.rg_name
   tenant_id           = data.azurerm_client_config.current.tenant_id
+  tags                = var.tags
 
   sku_name = var.sku
 
@@ -63,6 +73,7 @@ resource "azurerm_key_vault" "kv" {
 resource "azurerm_private_dns_zone" "kv" {
   name                = "privatelink.vaultcore.azure.net"
   resource_group_name = var.rg_name
+  tags                = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "kv1" {
@@ -70,6 +81,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "kv1" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.kv.name
   virtual_network_id    = var.vnet_aks_id
+  tags                  = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "kv2" {
@@ -77,6 +89,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "kv2" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.kv.name
   virtual_network_id    = var.vnet_hub_id
+  tags                  = var.tags
 }
 
 resource "azurerm_private_endpoint" "kv" {
@@ -84,6 +97,7 @@ resource "azurerm_private_endpoint" "kv" {
   location            = var.location
   resource_group_name = var.rg_name
   subnet_id           = var.snet_utils_id
+  tags                = var.tags
 
   private_service_connection {
     name                           = "psc-${var.prefix}kv-001" # "psc-vault-cac-001"

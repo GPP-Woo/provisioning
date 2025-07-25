@@ -94,3 +94,13 @@ variable "environment" {
   description = "To be set as value for Environment tag"
   default     = null
 }
+
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
+}

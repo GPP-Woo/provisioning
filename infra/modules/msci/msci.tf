@@ -33,10 +33,9 @@ variable "cluster_name" {
   description = "Name of the AKS cluster, to be tagged onto end of DCE and DCRA identifiers"
   default     = "pvaks"
 }
-variable "resource_tags" {
+variable "tags" {
   description = "Resource Tag Values"
   type        = map(string)
-  default     = null
   # default     = {
   #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
   #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
@@ -91,13 +90,14 @@ resource "azurerm_monitor_data_collection_endpoint" "ingestion_dce" {
   resource_group_name = var.rg_name
   location            = var.location
   kind                = "Linux"
-  tags                = var.resource_tags
+  tags                = var.tags
 }
 
 resource "azurerm_monitor_data_collection_rule" "dcr" {
   name                = "dcr-${var.prefix}-${var.cluster_name}"
   resource_group_name = var.rg_name
   location            = var.location
+  tags                = var.tags
 
   destinations {
     log_analytics {

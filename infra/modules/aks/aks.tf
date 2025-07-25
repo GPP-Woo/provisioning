@@ -82,8 +82,8 @@ variable "dns_service_ip" {
 variable "tags" {
   type = map(string)
   default = {
-    Provisioner = "Terraform"
-    Environment = "<not set>"
+    # Provisioner = "Terraform"
+    # Environment = "<not set>"
   }
   description = "The list of tags (tag/value) to add to created resources."
 }
@@ -137,6 +137,7 @@ locals {
 resource "azurerm_private_dns_zone" "aks" {
   name                = "privatelink.westeurope.azmk8s.io"
   resource_group_name = var.rg_name
+  tags                = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "aks1" {
@@ -144,6 +145,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "aks1" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.aks.name
   virtual_network_id    = var.vnet_hub_id
+  tags                  = var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "aks2" {
@@ -151,6 +153,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "aks2" {
   resource_group_name   = var.rg_name
   private_dns_zone_name = azurerm_private_dns_zone.aks.name
   virtual_network_id    = var.vnet_aks_id
+  tags                  = var.tags
 }
 
 ### Identity
@@ -158,11 +161,13 @@ resource "azurerm_user_assigned_identity" "aks" {
   name                = "uaid-${var.prefix}aks-001" # "id-aks-weu-001"
   resource_group_name = var.rg_name
   location            = var.location
+  tags                = var.tags
 }
 resource "azurerm_user_assigned_identity" "pod" {
   name                = "uaid-${var.prefix}pod-001" # "id-pod-weu-001"
   resource_group_name = var.rg_name
   location            = var.location
+  tags                = var.tags
 }
 
 ### Identity role assignment
@@ -282,6 +287,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   name                  = each.value.name
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
   vm_size               = each.value.vm_size
+  tags                  = var.tags
   node_count            = each.value.node_count
   vnet_subnet_id        = var.aks_subnet_id
   upgrade_settings {

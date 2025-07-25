@@ -23,6 +23,15 @@ variable "private_ip_address" {
   type        = string
   description = "The private IP address for the internal appgw connection"
 }
+variable "tags" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  # default     = {
+  #   "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  #   "<existingOrnew-tag-name2>" = "<existingOrnew-tag-value2>"
+  #   "<existingOrnew-tag-name3>" = "<existingOrnew-tag-value3>"
+  # }
+}
 
 locals {
   backend_address_pool_name              = "bapn-pvaks"
@@ -42,12 +51,14 @@ resource "azurerm_public_ip" "ip" {
   location            = var.location
   allocation_method   = "Static"
   sku                 = "Standard"
+  tags                = var.tags
 }
 
 resource "azurerm_application_gateway" "agw" {
   name                = "agw-pvaks"
   resource_group_name = var.rg_name
   location            = var.location
+  tags                = var.tags
 
   sku {
     name     = "Standard_v2"

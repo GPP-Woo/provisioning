@@ -1,7 +1,6 @@
 variable "environment" {
   description = "Environment suffix used for all resources"
   type        = string
-  default     = ""
 }
 variable "project_name" {
   description = "Project name used for all resources"
@@ -11,6 +10,10 @@ variable "project_name" {
 
 variable "location" {
   description = "The Azure Region in which all resources should be provisioned"
+  type        = string
+}
+variable "locationcode" {
+  description = "The Azure Region CODE (e.g. weu for West Europe)"
   type        = string
 }
 variable "rg_name" {
@@ -25,6 +28,16 @@ variable "acr_name" {
 }
 variable "aks_name" {
   description = "Azure Kubernetes Service Cluster Name"
+  type        = string
+  default     = null
+}
+variable "kubernetes_version" {
+  type        = string
+  default     = "1.33.0"
+  description = "Kubernetes version for AKS"
+}
+variable "law_name" {
+  description = "Azure Log Analytics Workspace Name"
   type        = string
   default     = null
 }
@@ -44,3 +57,13 @@ variable "aks_name" {
 #   description = "Postgres Persistent Volume Claim Name"
 #   type        = string
 # }
+
+variable "resource_tag_values" {
+  description = "Resource Tag Values"
+  type        = map(string)
+  default = {
+    Provisioner = "Terraform"
+    Environment = "<not set>"
+    # "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
+  }
+}

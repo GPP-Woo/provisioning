@@ -1,16 +1,11 @@
-# In environments/dev/backend.tf and environments/prod/backend.tf
+# Only DEV environment needs this backend.tf. 
+# GitHub Actions workflows use OIDC for PROD.
 terraform {
   backend "azurerm" {
-    # from deploy GHA workflow:
-    #  tf_resource_group_name: "woo-provisioning"
-    #  tf_storage_account_name: "wooprovisioning"
-    #  tf_state_container: "github-oidc-terraform-tfstate"
-    #  tf_state_key: "terraform.tfstate"
     resource_group_name  = "woo-provisioning"
     storage_account_name = "wooprovisioning"
     container_name       = "manual-terraform-tfstate"
     key                  = "aks-wooprovisioning-dev.tfstate" # Unique key per environment
-
     # Consider using this for Azure AD authentication to the backend
     # use_azuread_auth = true
   }
