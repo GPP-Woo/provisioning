@@ -165,6 +165,57 @@ module "bastion" {
 #   postgres_pvc_name = "${local.prefix}-cnpg-pvc"
 # }
 
+# this could be modularized:
+data "azurerm_client_config" "current" {}
+resource "azurerm_key_vault" "cisecrets" {
+  name                          = coalesce(var.ci_vault_name, "kv-${local.prefix}-cisecrets-${var.locationcode}")
+  location                      = azurerm_resource_group.rg.location
+  resource_group_name           = azurerm_resource_group.rg.name
+  tenant_id                     = data.azurerm_client_config.current.tenant_id
+  tags                          = var.resource_tag_values
+  sku_name                      = "standard"
+  enable_rbac_authorization     = false
+  public_network_access_enabled = true
+  purge_protection_enabled      = false
+}
+# Even this presents a race condition: https://github.com/hashicorp/terraform-provider-azurerm/issues/17015
+# MS Azure is SUCH a mess - even Microsoft admits it:
+#   Azure Rest API suggests to handle this by adding periodic retry logic if we
+#   receive a 403 Error immediately after adding an identity to the access policy.
+#   Not sure if Terraform resource code has such logic embedded into it.
+#  https://docs.microsoft.com/en-us/azure/key-vault/general/rest-error-codes#http-403-insufficient-permissions
+resource "azurerm_key_vault_access_policy" "current_user" {
+  key_vault_id       = azurerm_key_vault.cisecrets.id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = data.azurerm_client_config.current.object_id
+  key_permissions    = ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore"]
+  secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore"]
+}
+# Unfortunately, relying on newly assigned RBAC roles presents this race condition, so we
+# must use above legacy Access Policies for now. Using RBAC leads to below errors during provisioning.
+# │ Error: checking for presence of existing Secret "vm-privkey" (Key Vault "https://kv-devwoo-cisecrets-weu.vault.azure.net/"): keyvault.BaseClient#GetSecret: Failure responding to request: StatusCode=403 -- Original Error: autorest/azure: Service returned an error. Status=403 Code="Forbidden" Message="Caller is not authorized to perform action on resource.\r\nIf role assignments, deny assignments or role definitions were changed recently, please observe propagation time.
+# For role_definition_id values, see:
+# https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide
+# resource "azurerm_role_assignment" "akv_sp" {
+#   scope              = azurerm_key_vault.cisecrets.id
+#   principal_id       = data.azurerm_client_config.current.object_id
+#   # role_definition_id = "b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
+#   # role_definition_name = "Key Vault Secrets Officer"
+#   role_definition_id = "00482a5a-887f-4fb3-b363-3b7fe8e74483"
+#   # role_definition_name = "Key Vault Administrator"
+# }
+resource "azurerm_key_vault_secret" "vm_privkey" {
+  name         = "vm-privkey"
+  key_vault_id = azurerm_key_vault.cisecrets.id
+  value        = module.bastion.vm_privatekey
+  depends_on   = [azurerm_key_vault_access_policy.current_user]
+}
+resource "azurerm_key_vault_secret" "aks_kubeconfig" {
+  name         = "aks-kubeconfig"
+  key_vault_id = azurerm_key_vault.cisecrets.id
+  value        = module.aks.kube_config
+  depends_on   = [azurerm_key_vault_access_policy.current_user]
+}
 
 output "aks" {
   value     = module.aks

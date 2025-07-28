@@ -67,3 +67,9 @@ variable "resource_tag_values" {
     # "<existingOrnew-tag-name1>" = "<existingOrnew-tag-value1>"
   }
 }
+
+variable "ci_vault_name" {
+  type        = string
+  description = "The name of the keyvault to store CI secrets in, e.g. vm_privkey, kubeconfig, etc."
+  default     = null
+}
