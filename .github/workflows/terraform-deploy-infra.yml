@@ -90,9 +90,11 @@ jobs:
     - name: Verify availability of bastion vm tunnel endpoint
       id: validateTunnel
       run: ./azure-private.sh validate
+      working-directory: ${{ env.working_directory }}
       continue-on-error: true
+
     - name: Verify availability of bastion vm tunnel endpoint
-      if: failure()
+      if: always() && steps.validateTunnel.outcome == 'failure'
       run: |
         echo "*** WARNING: The Azure Bastion VM tunnel endpoint cannot be reached,"
         echo "             make sure to complete Phase 1 - AKS Infra setup first!"
