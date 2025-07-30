@@ -93,7 +93,7 @@ jobs:
       working-directory: ${{ env.working_directory }}
       continue-on-error: true
 
-    - name: Verify availability of bastion vm tunnel endpoint
+    - name: Bastion vm tunnel endpoint report
       if: always() && steps.validateTunnel.outcome == 'failure'
       run: |
         echo "*** WARNING: The Azure Bastion VM tunnel endpoint cannot be reached,"
@@ -103,7 +103,7 @@ jobs:
     # wrapper script azure-private.sh that provides a SOCKS5 proxy via our Azure Bastion VM.
     - name: Terraform Plan 2 - CRDs
       id: plan2
-      if: success()
+      if: steps.validateTunnel.outcome == 'success'
       run: ./azure-private.sh terraform plan -var-file=${{ env.ENV }}.tfvars -out=${{ env.CRDS_PLAN }}
       working-directory: ${{ env.working_directory }}
 
