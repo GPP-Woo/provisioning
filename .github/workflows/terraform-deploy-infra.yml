@@ -33,7 +33,7 @@ jobs:
       # tf_state_key: "terraform.tfstate"
       # working_directory: infra/environments/prod
       ENV: "prod"
-      INFRA_TARGET: "module.bastion.azurerm_linux_virtual_machine.vm1[0]"
+      INFRA_TARGETS: "-target=azurerm_key_vault.cisecrets -target=azurerm_key_vault_access_policy.current_user -target=azurerm_key_vault_secret.aks_kubeconfig -target=azurerm_key_vault_secret.vm_privkey -target=azurerm_resource_group.rg -target=module.acr.azurerm_container_registry.acr -target=module.acr.azurerm_private_dns_zone.acr -target=module.acr.azurerm_private_dns_zone_virtual_network_link.acr1 -target=module.acr.azurerm_private_dns_zone_virtual_network_link.acr2 -target=module.acr.azurerm_private_endpoint.acr[0] -target=module.agw.azurerm_application_gateway.agw -target=module.agw.azurerm_public_ip.ip -target=module.aks.azurerm_kubernetes_cluster.main -target=module.aks.azurerm_private_dns_zone.aks -target=module.aks.azurerm_private_dns_zone_virtual_network_link.aks1 -target=module.aks.azurerm_private_dns_zone_virtual_network_link.aks2 -target=module.aks.azurerm_role_assignment.acr -target=module.aks.azurerm_role_assignment.agw -target=module.aks.azurerm_role_assignment.dns_contributor -target=module.aks.azurerm_role_assignment.network_contributor -target=module.aks.azurerm_user_assigned_identity.aks -target=module.aks.azurerm_user_assigned_identity.pod -target=module.bastion.azurerm_bastion_host.bastion -target=module.bastion.azurerm_linux_virtual_machine.vm1[0] -target=module.bastion.azurerm_network_interface.vm1nic[0] -target=module.bastion.azurerm_public_ip.bastion -target=module.bastion.random_pet.vm_password -target=module.bastion.tls_private_key.vm1[0] -target=module.kv.azurerm_key_vault.kv -target=module.kv.azurerm_private_dns_zone.kv -target=module.kv.azurerm_private_dns_zone_virtual_network_link.kv1 -target=module.kv.azurerm_private_dns_zone_virtual_network_link.kv2 -target=module.kv.azurerm_private_endpoint.kv -target=module.law.azurerm_log_analytics_solution.law -target=module.law.azurerm_log_analytics_workspace.law -target=module.vnets.azurerm_subnet.agw -target=module.vnets.azurerm_subnet.aks -target=module.vnets.azurerm_subnet.bastion -target=module.vnets.azurerm_subnet.global -target=module.vnets.azurerm_subnet.utils -target=module.vnets.azurerm_virtual_network.vnet_aks -target=module.vnets.azurerm_virtual_network.vnet_hub -target=module.vnets.azurerm_virtual_network_peering.to_vnet_aks -target=module.vnets.azurerm_virtual_network_peering.to_vnet_hub"
       INFRA_PLAN: "infra.tfplan"
       CRDS_PLAN: "crds.tfplan"
       TF_CLI_ARGS_plan: "-input=false -no-color"
@@ -71,10 +71,10 @@ jobs:
       id: validate
       run: terraform validate
 
-    # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGET, because without a
+    # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGETS, because without a
     # working bastion tunnel, setup of the kubernetes and helm providers would fail.
     - name: Terraform Plan 1 - AKS infra
-      run: terraform plan -var-file=${{ env.ENV }}.tfvars -target=${{ env.INFRA_TARGET }} -out=${{ env.INFRA_PLAN }}
+      run: terraform plan -var-file=${{ env.ENV }}.tfvars ${{ env.INFRA_TARGETS }} -out=${{ env.INFRA_PLAN }}
       working-directory: ${{ env.working_directory }}
 
     - name: Upload 1 - AKS infra
