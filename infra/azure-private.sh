@@ -56,7 +56,7 @@ RG_NAME=$($TF $CHDIR output -raw rg_name); echo -n "."
 JUMPBOX_IP=$($TF $CHDIR output -raw vm1_ip); echo -n "."
 SSH_USER=$($TF $CHDIR output -raw vm_username); echo -n "."
 SSH_KEY=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.ssh/})
-$TF $CHDIR output -raw -show-sensitive vm_privkey | install -m 0600 /dev/stdin "$SSH_KEY"; echo "."
+$TF $CHDIR output -raw vm_privkey | install -m 0600 /dev/stdin "$SSH_KEY"; echo "."
 # Tunnel arguments pre-flight-check
 if [ -z "$BASTION_NAME" ]||[ -z "$RG_NAME" ]||[ -z "$JUMPBOX_IP" ]||[ -z "$SSH_USER" ]||[ ! -s "$SSH_KEY" ]; then
     echo "Error: Retrieval of one or more ${TF##*/} outputs failed:"
