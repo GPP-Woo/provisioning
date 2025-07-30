@@ -47,7 +47,7 @@ variable "k8s_io_version" {
   default     = "1.33"
   description = "pkgs.k8s.io repo version"
 }
-variable "kube_config" {
+variable "kube_config_raw" {
   type        = string
   sensitive   = true
   description = "Kubeconfig contents to install for <vm_username>"
@@ -75,13 +75,13 @@ resource "random_pet" "vm_password" {
 locals {
   vm_password = coalesce(var.vm_password, random_pet.vm_password.id)
 
-  custom_data = var.kube_config == null ? null : <<CUSTOM_DATA
+  custom_data = var.kube_config_raw == null ? null : <<CUSTOM_DATA
 #!/bin/bash
 sudo -i
 KC=/home/${var.vm_username}/.kube/config
 mkdir /home/${var.vm_username}/.kube
 cat << EOT > $KC
-${var.kube_config}
+${var.kube_config_raw}
 EOT
 chown -R ${var.vm_username}: /home/${var.vm_username}/.kube
 chmod 0600 $KC
@@ -101,7 +101,7 @@ EOF
 CUSTOM_DATA
 
   ssh_access = var.enable_linux_vm == false ? null : <<SSH_ACCESS
-eval "cat $(tofu -chdir=infra/environments/... output -show-sensitive vm_privkey)" \
+tofu -chdir=infra output -raw -show-sensitive vm_privkey \
   | install -m 0600 /dev/stdin ~/.ssh/vm1-${var.vm_username}
 cat <<PRIVKEY | install -m 0600 /dev/stdin ~/.ssh/vm1-${var.vm_username}
 ${tls_private_key.vm1[0].private_key_openssh}
@@ -184,7 +184,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
   tags                = var.tags
   admin_username      = var.vm_username
   admin_password      = local.vm_password
-  custom_data         = var.kube_config == null ? null : base64encode(local.custom_data)
+  custom_data         = var.kube_config_raw == null ? null : base64encode(local.custom_data)
   network_interface_ids = [
     azurerm_network_interface.vm1nic[0].id,
   ]
@@ -241,11 +241,23 @@ resource "azurerm_windows_virtual_machine" "vm2" {
 output "bastion_name" {
   value = azurerm_bastion_host.bastion.name
 }
+output "bastion_ip" {
+  value = azurerm_public_ip.bastion.ip_address
+}
+output "vm1_id" {
+  value = var.enable_linux_vm ? azurerm_linux_virtual_machine.vm1[0].id : null
+}
 output "vm1_ip" {
   value = var.enable_linux_vm ? azurerm_linux_virtual_machine.vm1[0].private_ip_address : null
 }
+output "vm2_id" {
+  value = var.enable_windows_vm ? azurerm_windows_virtual_machine.vm2[0].id : null
+}
 output "vm2_ip" {
   value = var.enable_windows_vm ? azurerm_windows_virtual_machine.vm2[0].private_ip_address : null
+}
+output "vm_username" {
+  value = var.vm_username
 }
 output "vm_password" {
   value = local.vm_password

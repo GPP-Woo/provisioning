@@ -1,3 +1,19 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 4.37.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.38.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 3.0.2"
+    }
+  }
+}
 provider "azurerm" {
   # Please setup OIDC or ARM_SUBSCRIPTION_ID environment value
   features {}
@@ -6,6 +22,31 @@ provider "azurerm" {
   #  subscription_id = "<Your_Dev_Subscription_ID>"
   #  tenant_id       = "<Your_Dev_Tenant_ID>"
 }
+provider "kubernetes" {
+  # The FQDN of the private cluster is required for TLS certificate validation.
+  # config_path = azurerm_kubernetes_cluster.main.kube_config_raw
+  # username               = module.aks.kube_config.username
+  # password               = module.aks.kube_config.password
+  host                   = module.aks.kube_config.host
+  client_certificate     = base64decode(module.aks.kube_config.client_certificate)
+  client_key             = base64decode(module.aks.kube_config.client_key)
+  cluster_ca_certificate = base64decode(module.aks.kube_config.cluster_ca_certificate)
+  proxy_url              = "socks5://localhost:${var.SOCKS_PORT}"
+}
+provider "helm" {
+  # The helm provider inherits its configuration from the kubernetes provider.
+  # Explicitly defining it ensures clarity and proper dependency handling.
+  kubernetes = {
+    # config_path = azurerm_kubernetes_cluster.main.kube_config_raw
+    # username               = module.aks.kube_config.username
+    # password               = module.aks.kube_config.password
+    host                   = module.aks.kube_config.host
+    client_certificate     = base64decode(module.aks.kube_config.client_certificate)
+    client_key             = base64decode(module.aks.kube_config.client_key)
+    cluster_ca_certificate = base64decode(module.aks.kube_config.cluster_ca_certificate)
+    proxy_url              = "socks5://localhost:${var.SOCKS_PORT}"
+  }
+}
 
 locals {
   prefix = "${var.project_name}${var.environment}"
@@ -13,7 +54,7 @@ locals {
 
 # Create one Resource Group to hold everything
 resource "azurerm_resource_group" "rg" {
-  name     = coalesce(var.rg_name, "rg-${local.prefix}-${var.locationcode}")
+  name     = coalesce(var.rg_name, "${local.prefix}-rg")
   location = var.location
 }
 
@@ -144,21 +185,20 @@ module "bastion" {
   prefix          = local.prefix
   snet_global_id  = module.vnets.snet_global_id
   snet_bastion_id = module.vnets.snet_bastion_id
-  vm_username     = "BastionUser"
+  vm_username     = var.vm_username
   k8s_io_version  = join("", regex("^(\\d+\\.\\d+)(?:\\.\\d+)", var.kubernetes_version))
-  kube_config     = module.aks.kube_config
-  # locationcode    = var.locationcode
+  kube_config_raw = module.aks.kube_config
 }
 
 # module "storage" {
-#   source   = "./modules/storage"
+#   source   = "./../../modules/storage"
 #   name     = "${local.prefix}-sa"
 #   location = azurerm_resource_group.rg.location
 #   rg_name  = azurerm_resource_group.rg.name
 # }
 
 # module "cloudnativepg" {
-#   source            = "./modules/cloudnativepg"
+#   source            = "./../../modules/cloudnativepg"
 #   rg_name           = azurerm_resource_group.rg.name
 #   location          = azurerm_resource_group.rg.location
 #   postgres_pv_name  = "${local.prefix}-cnpg-pv"
@@ -178,12 +218,6 @@ resource "azurerm_key_vault" "cisecrets" {
   public_network_access_enabled = true
   purge_protection_enabled      = false
 }
-# Even this presents a race condition: https://github.com/hashicorp/terraform-provider-azurerm/issues/17015
-# MS Azure is SUCH a mess - even Microsoft admits it:
-#   Azure Rest API suggests to handle this by adding periodic retry logic if we
-#   receive a 403 Error immediately after adding an identity to the access policy.
-#   Not sure if Terraform resource code has such logic embedded into it.
-#  https://docs.microsoft.com/en-us/azure/key-vault/general/rest-error-codes#http-403-insufficient-permissions
 resource "azurerm_key_vault_access_policy" "current_user" {
   key_vault_id       = azurerm_key_vault.cisecrets.id
   tenant_id          = data.azurerm_client_config.current.tenant_id
@@ -191,19 +225,6 @@ resource "azurerm_key_vault_access_policy" "current_user" {
   key_permissions    = ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore"]
   secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore"]
 }
-# Unfortunately, relying on newly assigned RBAC roles presents this race condition, so we
-# must use above legacy Access Policies for now. Using RBAC leads to below errors during provisioning.
-# │ Error: checking for presence of existing Secret "vm-privkey" (Key Vault "https://kv-devwoo-cisecrets-weu.vault.azure.net/"): keyvault.BaseClient#GetSecret: Failure responding to request: StatusCode=403 -- Original Error: autorest/azure: Service returned an error. Status=403 Code="Forbidden" Message="Caller is not authorized to perform action on resource.\r\nIf role assignments, deny assignments or role definitions were changed recently, please observe propagation time.
-# For role_definition_id values, see:
-# https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide
-# resource "azurerm_role_assignment" "akv_sp" {
-#   scope              = azurerm_key_vault.cisecrets.id
-#   principal_id       = data.azurerm_client_config.current.object_id
-#   # role_definition_id = "b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
-#   # role_definition_name = "Key Vault Secrets Officer"
-#   role_definition_id = "00482a5a-887f-4fb3-b363-3b7fe8e74483"
-#   # role_definition_name = "Key Vault Administrator"
-# }
 resource "azurerm_key_vault_secret" "vm_privkey" {
   name         = "vm-privkey"
   key_vault_id = azurerm_key_vault.cisecrets.id
@@ -217,6 +238,7 @@ resource "azurerm_key_vault_secret" "aks_kubeconfig" {
   depends_on   = [azurerm_key_vault_access_policy.current_user]
 }
 
+
 output "aks" {
   value     = module.aks
   sensitive = true
@@ -225,8 +247,15 @@ output "aks_kubeconfig" {
   value     = module.aks.kube_config
   sensitive = true
 }
+output "aks_private_fqdn" {
+  value     = module.aks.private_fqdn
+  sensitive = true
+}
 output "bastion_name" {
   value = module.bastion.bastion_name
+}
+output "bastion_ip" {
+  value = module.bastion.bastion_ip
 }
 output "vm_password" {
   value     = module.bastion.vm_password

@@ -41,6 +41,17 @@ variable "law_name" {
   type        = string
   default     = null
 }
+variable "vm_username" {
+  type        = string
+  description = "Username for bastion VM(s)"
+  default     = "user"
+}
+# variable "vm_password" {
+#   type = string
+#   description = "Password for bastion VM users"
+#   default = null
+#   sensitive = true
+# }
 
 # variable "storage_account_name" {
 #   description = "Storage Account Name"
@@ -72,4 +83,9 @@ variable "ci_vault_name" {
   type        = string
   description = "The name of the keyvault to store CI secrets in, e.g. vm_privkey, kubeconfig, etc."
   default     = null
+}
+variable "SOCKS_PORT" {
+  type        = number
+  description = "The SOCKS5 (tcp) port number for the proxy to listen on (for k8s endpoint access)"
+  default     = 8180
 }

@@ -1,0 +1,16 @@
+# AzureRM backend config, to be merged upon "tofu init -backend-config=..."
+# N.B. GitHub Actions workflows use OIDC!
+# terraform {
+#   backend "azurerm" {
+    # prod:
+    resource_group_name  = "woo-provisioning"
+    storage_account_name = "wooprovisioning"
+    container_name       = "github-oidc-terraform-tfstate"
+    key                  = "terraform.tfstate"
+    # dev:
+    # resource_group_name  = "woo-provisioning"
+    # storage_account_name = "wooprovisioning"
+    # container_name       = "manual-terraform-tfstate"
+    # key                  = "aks-wooprovisioning-dev.tfstate"
+#   }
+# }
