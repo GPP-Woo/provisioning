@@ -93,7 +93,7 @@ jobs:
       working-directory: ${{ env.working_directory }}
       continue-on-error: true
 
-    - name: Bastion vm tunnel endpoint report
+    - name: Bastion vm tunnel report
       if: always() && steps.validateTunnel.outcome == 'failure'
       run: |
         echo "*** WARNING: The Azure Bastion VM tunnel endpoint cannot be reached,"
