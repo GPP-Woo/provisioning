@@ -5,9 +5,9 @@ environment  = "prod"
 location     = "West Europe"
 locationcode = "weu"
 
-rg_name  = "woo-aks"
+rg_name  = "woo-prod"
 acr_name = "wooRegistry"
-aks_name = "woo"
+# aks_name = "woo"
 # storage_account_name = "woo"
 vm_username = "operator"
 
