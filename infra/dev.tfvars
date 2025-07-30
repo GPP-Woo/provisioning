@@ -1,5 +1,5 @@
 # .tfvars file for GPP-WOO development environment
-#  (should not live past working days)
+#  (should "regularly" and automatically get removed)
 project_name = "woo"
 environment  = "dev"
 location     = "West Europe"
