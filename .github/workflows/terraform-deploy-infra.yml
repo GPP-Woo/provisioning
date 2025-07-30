@@ -69,7 +69,7 @@ jobs:
     # Beware: validate WILL break on use of known-after-apply resources for dict keys
     - name: Terraform Validate
       id: validate
-      run: terraform validate -var-file=${{ env.ENV }}.tfvars
+      run: terraform validate
 
     # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGET, because without a
     # working bastion tunnel, setup of the kubernetes and helm providers would fail.
