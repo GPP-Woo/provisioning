@@ -71,13 +71,6 @@ jobs:
       id: validate
       run: terraform validate
 
-    - name: debug folder contents
-      run: |
-        pwd
-        ls -lsa
-        terraform plan -help
-      working-directory: ${{ env.working_directory }}
-
     # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGET, because without a
     # working bastion tunnel, setup of the kubernetes and helm providers would fail.
     - name: Terraform Plan 1 - AKS infra
