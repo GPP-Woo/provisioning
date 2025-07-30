@@ -27,12 +27,19 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_USE_OIDC: true
-      tf_resource_group_name: "woo-provisioning"
-      tf_storage_account_name: "wooprovisioning"
-      tf_state_container: "github-oidc-terraform-tfstate"
-      tf_state_key: "terraform.tfstate"
+      # tf_resource_group_name: "woo-provisioning"
+      # tf_storage_account_name: "wooprovisioning"
+      # tf_state_container: "github-oidc-terraform-tfstate"
+      # tf_state_key: "terraform.tfstate"
+      # working_directory: infra/environments/prod
+      ENV: "prod"
+      INFRA_TARGET: "module.bastion.azurerm_linux_virtual_machine.vm1[0]"
+      INFRA_PLAN: "infra.tfplan"
+      CRDS_PLAN: "crds.tfplan"
+      TF_CLI_ARGS_plan: "-input=false -no-color"
+      TF_CLI_ARGS_apply: "-input=false -no-color"
       working_directory: infra
-
+      
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -56,19 +63,57 @@ jobs:
         commit_user_name: "github-actions[bot]"
 
     - name: Terraform Init
-      run: terraform init
+      run: terraform init -backend-config=${{ env.ENV }}.azurerm.tfbackend
       working-directory: ${{ env.working_directory }}
 
     # Beware: validate WILL break on use of known-after-apply resources for dict keys
     - name: Terraform Validate
       id: validate
-      run: terraform validate -no-color
+      run: terraform validate
 
-    - name: Terraform Plan
-      run: terraform plan -no-color -input=false
+    # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGET, because without a
+    # working bastion tunnel, setup of the kubernetes and helm providers would fail.
+    - name: Terraform Plan 1 - AKS infra
+      run: terraform plan -var-file=${{ env.ENV }}.tfvars -target=${{ env.INFRA_TARGET }} -out=${{ env.INFRA_PLAN }}
       working-directory: ${{ env.working_directory }}
 
-    - name: Terraform Apply
+    - name: Upload 1 - AKS infra
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ env.working_directory }}/${{ env.INFRA_PLAN }}
+
+    - name: Terraform Apply 1 - AKS infra
       if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      run: terraform apply -auto-approve -input=false
+      run: terraform apply -auto-approve ${{ env.INFRA_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
+    - name: Verify availability of bastion vm tunnel endpoint
+      id: validateTunnel
+      run: ./azure-private.sh validate
+      working-directory: ${{ env.working_directory }}
+      continue-on-error: true
+
+    - name: Bastion vm tunnel endpoint report
+      if: always() && steps.validateTunnel.outcome == 'failure'
+      run: |
+        echo "*** WARNING: The Azure Bastion VM tunnel endpoint cannot be reached,"
+        echo "             make sure to complete Phase 1 - AKS Infra setup first!"
+
+    # Phase 2: we can now use Terraform WITH connectivity to the private AKS cluster endpoint via
+    # wrapper script azure-private.sh that provides a SOCKS5 proxy via our Azure Bastion VM.
+    - name: Terraform Plan 2 - CRDs
+      id: plan2
+      if: steps.validateTunnel.outcome == 'success'
+      run: ./azure-private.sh terraform plan -var-file=${{ env.ENV }}.tfvars -out=${{ env.CRDS_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
+    - name: Upload 2 - CRDs
+      if: steps.plan2.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ env.working_directory }}/${{ env.CRDS_PLAN }}
+
+    - name: Terraform Apply 2 - CRDs
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      run: ./azure-private.sh terraform apply -auto-approve ${{ env.CRDS_PLAN }}
       working-directory: ${{ env.working_directory }}

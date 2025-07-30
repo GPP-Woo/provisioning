@@ -1,0 +1,12 @@
+# DEV backend config, to be merged upon "tofu init -backend-config=..."
+# GitHub Actions workflows use OIDC for PROD.
+# terraform {
+#   backend "azurerm" {
+    resource_group_name  = "woo-provisioning"
+    storage_account_name = "wooprovisioning"
+    container_name       = "manual-terraform-tfstate"
+    key                  = "aks-wooprovisioning-dev.tfstate"
+#     # Consider using this for Azure AD authentication to the backend
+#     # use_azuread_auth = true
+#   }
+# }

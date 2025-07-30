@@ -60,7 +60,7 @@ resource "azurerm_resource_group" "rg" {
 
 # Create internal, private VNET for cluster, ACR endpoint, etc.
 module "vnets" {
-  source            = "./modules/vnets"
+  source            = "./../../modules/vnets"
   prefix            = local.prefix
   hub_name          = "vnet-${local.prefix}-hub"
   aks_name          = "vnet-${local.prefix}-aks"
@@ -78,7 +78,7 @@ module "vnets" {
 
 # Create Azure Container Registry with optional Private Endpoint in private subnet
 module "acr" {
-  source                        = "./modules/acr"
+  source                        = "./../../modules/acr"
   prefix                        = local.prefix
   name                          = coalesce(var.acr_name, "${local.prefix}pvaks${var.locationcode}")
   location                      = azurerm_resource_group.rg.location
@@ -96,7 +96,7 @@ module "acr" {
 # Create Application Gateway, managed by AKS with AGIC addon. It will have a private
 # IP address set by us, and a public IP address assigned from Microsoft Azure.
 module "agw" {
-  source             = "./modules/agw"
+  source             = "./../../modules/agw"
   prefix             = local.prefix
   name               = coalesce(var.acr_name, "agw-${local.prefix}-pvaks-${var.locationcode}")
   location           = azurerm_resource_group.rg.location
@@ -108,7 +108,7 @@ module "agw" {
 
 # Provision a Log Analytics Workspace:
 module "law" {
-  source   = "./modules/law"
+  source   = "./../../modules/law"
   name     = coalesce(var.law_name, "law-${local.prefix}-pvaks-${var.locationcode}")
   location = azurerm_resource_group.rg.location
   rg_name  = azurerm_resource_group.rg.name
@@ -117,7 +117,7 @@ module "law" {
 
 # Setup our private AKS cluster:
 module "aks" {
-  source             = "./modules/aks"
+  source             = "./../../modules/aks"
   prefix             = local.prefix
   name               = coalesce(var.aks_name, "aks-${local.prefix}-${var.locationcode}")
   location           = azurerm_resource_group.rg.location
@@ -148,7 +148,7 @@ module "aks" {
 
 # Provision a MS Container Insights into Analytics Workspace:
 module "msci" {
-  source       = "./modules/msci"
+  source       = "./../../modules/msci"
   name         = "mcsi-${local.prefix}-pvaks-${var.locationcode}"
   prefix       = local.prefix
   location     = azurerm_resource_group.rg.location
@@ -162,7 +162,7 @@ module "msci" {
 
 # Add a Key Vault, accessible for pods:
 module "kv" {
-  source           = "./modules/kv"
+  source           = "./../../modules/kv"
   name             = "kv-${local.prefix}-pvaks-${var.locationcode}"
   location         = azurerm_resource_group.rg.location
   locationcode     = var.locationcode
@@ -177,7 +177,7 @@ module "kv" {
 
 # Add a Bastion and optional VM:
 module "bastion" {
-  source          = "./modules/bastion"
+  source          = "./../../modules/bastion"
   name            = "bastion-${local.prefix}-${var.locationcode}"
   location        = azurerm_resource_group.rg.location
   rg_name         = azurerm_resource_group.rg.name
@@ -261,7 +261,7 @@ resource "azurerm_key_vault_secret" "aks_kubeconfig" {
 # AKS/Kubernetes resources to follow
 
 module "cnpg" {
-  source = "./modules/cnpg/"
+  source = "./../../modules/cnpg/"
 }
 
 variable "ISSUER_EMAIL" {

@@ -2,8 +2,7 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.opentofu.org/hashicorp/azurerm" {
-  version     = "4.37.0"
-  constraints = ">= 4.37.0"
+  version = "4.37.0"
   hashes = [
     "h1:0pRfm5reTCcXdgb3fv1cszaJBuk3sMv3f+aDatgKEgk=",
     "zh:14e374b04771e1ff66716d6e4787e818b9548d40cb1ea7851efcd433c06d139b",
@@ -19,8 +18,7 @@ provider "registry.opentofu.org/hashicorp/azurerm" {
 }
 
 provider "registry.opentofu.org/hashicorp/helm" {
-  version     = "3.0.2"
-  constraints = ">= 3.0.2"
+  version = "3.0.2"
   hashes = [
     "h1:17Ro1Gs9aCN5QGQ6RDvuianmNV3AxgegYqTJODlYdHI=",
     "zh:100f75a700074568cfaee7884e4477c50b5468e086db5bb95d7d519581b65621",
@@ -37,8 +35,7 @@ provider "registry.opentofu.org/hashicorp/helm" {
 }
 
 provider "registry.opentofu.org/hashicorp/kubernetes" {
-  version     = "2.38.0"
-  constraints = ">= 2.38.0"
+  version = "2.38.0"
   hashes = [
     "h1:nY7J9jFXcsRINog0KYagiWZw1GVYF9D2JmtIB7Wnrao=",
     "zh:1096b41c4e5b2ee6c1980916fb9a8579bc1892071396f7a9432be058aabf3cbc",
