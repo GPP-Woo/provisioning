@@ -87,18 +87,31 @@ jobs:
       run: terraform apply -auto-approve ${{ env.INFRA_PLAN }}
       working-directory: ${{ env.working_directory }}
 
+    - name: Verify availability of bastion vm tunnel endpoint
+      id: validateTunnel
+      run: ./azure-private.sh validate
+      continue-on-error: true
+    - name: Verify availability of bastion vm tunnel endpoint
+      if: failure()
+      run: |
+        echo "*** WARNING: The Azure Bastion VM tunnel endpoint cannot be reached,"
+        echo "             make sure to complete Phase 1 - AKS Infra setup first!"
+
     # Phase 2: we can now use Terraform WITH connectivity to the private AKS cluster endpoint via
     # wrapper script azure-private.sh that provides a SOCKS5 proxy via our Azure Bastion VM.
     - name: Terraform Plan 2 - CRDs
+      id: plan2
+      if: success()
       run: ./azure-private.sh terraform plan -var-file=${{ env.ENV }}.tfvars -out=${{ env.CRDS_PLAN }}
       working-directory: ${{ env.working_directory }}
 
     - name: Upload 2 - CRDs
+      if: steps.plan2.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
         path: ${{ env.working_directory }}/${{ env.CRDS_PLAN }}
 
-    - name: Terraform Apply 1 - AKS infra
+    - name: Terraform Apply 2 - CRDs
       if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       run: ./azure-private.sh terraform apply -auto-approve ${{ env.CRDS_PLAN }}
       working-directory: ${{ env.working_directory }}
