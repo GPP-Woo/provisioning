@@ -36,6 +36,26 @@ variable "kubernetes_version" {
   default     = "1.33.0"
   description = "Kubernetes version for AKS"
 }
+variable "aks_node_pools" {
+  type = list(object({
+    name       = string
+    vm_size    = string
+    node_count = number
+    upgrade_settings = optional(object({
+      drain_timeout_in_minutes      = number
+      max_surge                     = string
+      node_soak_duration_in_minutes = number
+    }))
+  }))
+  description = "The list of node_pools and configs"
+  default = [
+    {
+      name       = "default"
+      vm_size    = "Standard_DS2_v2"
+      node_count = 2
+    }
+  ]
+}
 variable "law_name" {
   description = "Azure Log Analytics Workspace Name"
   type        = string

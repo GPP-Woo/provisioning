@@ -132,18 +132,7 @@ module "aks" {
   acr_id             = module.acr.id
   rg_id              = azurerm_resource_group.rg.id
   kubernetes_version = var.kubernetes_version
-  node_pools = [
-    {
-      name       = "default"
-      vm_size    = "Standard_DS2_v2"
-      node_count = 3
-    },
-    # {
-    #   name       = "user"
-    #   vm_size    = "Standard_DS2_v2"
-    #   node_count = 2
-    # }
-  ]
+  node_pools         = var.aks_node_pools
 }
 
 # Provision a MS Container Insights into Analytics Workspace:
