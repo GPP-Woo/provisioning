@@ -28,8 +28,8 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_USE_OIDC: true
       ENV: ${{ inputs.environment }}
-      DESTROY_K8S_PLAN: "destroy-k8s.tfplan"
-      DESTROY_PLAN: "destroy.tfplan"
+      DESTROY_K8S_PLAN: "k8s.tfplan"
+      DESTROY_PLAN: "infra.tfplan"
       TF_CLI_ARGS_plan: "-input=false -no-color"
       TF_CLI_ARGS_apply: "-input=false -no-color"
       working_directory: infra
