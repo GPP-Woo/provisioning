@@ -1,0 +1,83 @@
+
+name: DESTROY Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        default: nonexist
+        options:
+          - nonexist
+          - dev
+          - prod # FIXME - REMOVE THIS EVENTUALLY!! - FIXME
+        required: true
+        description: The deployed environment that you intend to DESTROY - use with care!
+  
+jobs:
+  terraform:
+    name: Terraform-DESTROY
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # Required for OIDC
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_USE_OIDC: true
+      ENV: ${{ inputs.environment }}
+      DESTROY_K8S_PLAN: "destroy-k8s.tfplan"
+      DESTROY_PLAN: "destroy.tfplan"
+      TF_CLI_ARGS_plan: "-input=false -no-color"
+      TF_CLI_ARGS_apply: "-input=false -no-color"
+      working_directory: infra
+      
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.12.2
+        terraform_wrapper: true
+
+    - name: Terraform Init
+      run: terraform init -backend-config=${{ env.ENV }}.azurerm.tfbackend
+      working-directory: ${{ env.working_directory }}
+
+    # Beware: sanity-check
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate
+      working-directory: ${{ env.working_directory }}
+
+    # Phase 1: let Terraform destroy all resources from Kubernetes and Helm providers
+    - name: Terraform Plan 1 - DESTROY K8S
+      run: ./azure-private.sh terraform plan -destroy -var-file=${{ env.ENV }}.tfvars -out=${{ env.DESTROY_K8S_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
+    - name: Upload 1 - DESTROY K8S
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ env.working_directory }}/${{ env.DESTROY_K8S_PLAN }}
+
+    - name: Terraform Apply 1 - DESTROY K8S
+      run: ./azure-private.sh terraform apply -destroy -auto-approve ${{ env.DESTROY_K8S_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
+    # Phase 2: let Terraform destroy all remaining Infra resources thath remain after our SOCKS5 bastion tunnel died
+    - name: Terraform Plan 2 - DESTROY INFRA
+      run: terraform plan -destroy -var-file=${{ env.ENV }}.tfvars -out=${{ env.DESTROY_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
+    - name: Upload 2 - DESTROY INFRA
+      uses: actions/upload-artifact@v4
+      with:
+        path: ${{ env.working_directory }}/${{ env.DESTROY_PLAN }}
+
+    - name: Terraform Apply 2 - DESTROY INFRA
+      run: terraform apply -destroy -auto-approve ${{ env.DESTROY_PLAN }}
+      working-directory: ${{ env.working_directory }}
