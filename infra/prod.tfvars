@@ -10,12 +10,12 @@ acr_name = "wooRegistry"
 # aks_name = "woo"
 aks_node_pools = [{
   name       = "default"
-  vm_size    = "Standard_DS4_v2"
+  vm_size    = "Standard_D4s_v6"
   node_count = 2
   },
   {
     name       = "user"
-    vm_size    = "Standard_D4s_v6" # or, better: Standard_D8s_v6 or Standard_D16s_v6
+    vm_size    = "Standard_D8s_v6" # or, better: Standard_D8s_v6 or Standard_D16s_v6
     node_count = 3
   }
 ]
