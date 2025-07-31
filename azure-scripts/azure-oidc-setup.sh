@@ -3,6 +3,8 @@
 # workflows to use for authenticating to Azure using azcli, Tofu/Terraform, etc.
 # (Thanks to Thomas Thornton for inspiration, see:
 #  https://thomasthornton.cloud/2025/05/15/deploy-terraform-to-azure-with-oidc-and-github-actions/)
+#
+# Example usage:  azure-oidc-setup.sh Github-GPP-OIDC https://github.com/GPP-Woo/provisioning
 
 # Error handler
 croak() {
@@ -79,29 +81,42 @@ SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 # Set subscription scope
 SUBSCRIPTION_SCOPE="/subscriptions/$SUBSCRIPTION_ID"
 
-# Check if subscription-level role assignment already exists to avoid duplicates
-EXISTING_ROLE=$(az role assignment list --assignee "$APP_ID" --scope "$SUBSCRIPTION_SCOPE" --role "Contributor" --query "[].id" -o tsv)
-unset ROLE_ASSIGNED
-if [ -n "$EXISTING_ROLE" ]; then
-    echo "Contributor role assignment already exists for this application at the subscription level."
-    ROLE_ASSIGNED=yes
-else
-    read -p "No Contributor role assignment found for this APP_ID. Create (y/N)?" answer
-    if expr "$answer" : "[Yy]" >& /dev/null; then
-        # Assign permissions to the application at subscription level
-        echo "Assigning 'Contributor' role to the application at subscription level..."
-        az role assignment create --assignee "$APP_ID" --role "Contributor" --scope "$SUBSCRIPTION_SCOPE"
-        if [ $? -ne 0 ]; then
-            echo "WARNING: Failed to assign Contributor role to the application at subscription level."
-        else
-            echo "Successfully assigned role to application."
-            ROLE_ASSIGNED=yes
-        fi
-    else
-        echo "WARNING: Could not find Contributor role assignment for this APP_ID."
-        echo "         You may need to grant permissions before use from GitHub!"
+let ROLE_ASSIGNED=0
+# We'll reuse this block - therefor it is a function:
+function AssignRole() {
+    ROLE="$1"
+    if [ -z "$ROLE" ]; then
+        echo "WARNING: Specify ROLE to assign!"
+        return
     fi
-fi
+    # Check if subscription-level role assignment already exists to avoid duplicates
+    EXISTING_ROLE=$(az role assignment list --assignee "$APP_ID" --scope "$SUBSCRIPTION_SCOPE" --role "$ROLE" --query "[].id" -o tsv)
+    # unset ROLE_ASSIGNED
+    if [ -n "$EXISTING_ROLE" ]; then
+        echo "'$ROLE' role assignment already exists for this application at the subscription level."
+        # ROLE_ASSIGNED=yes
+        let ROLE_ASSIGNED=$ROLE_ASSIGNED+1
+    else
+        read -p "No '$ROLE' role assignment found for this APP_ID. Create (y/N)?" answer
+        if expr "$answer" : "[Yy]" >& /dev/null; then
+            # Assign permissions to the application at subscription level
+            echo "Assigning '$ROLE' role to the application at subscription level..."
+            az role assignment create --assignee "$APP_ID" --role "$ROLE" --scope "$SUBSCRIPTION_SCOPE"
+            if [ $? -ne 0 ]; then
+                echo "WARNING: Failed to assign '$ROLE' role to the application at subscription level."
+            else
+                echo "Successfully assigned role to application."
+                let ROLE_ASSIGNED=$ROLE_ASSIGNED+1
+            fi
+        else
+            echo "WARNING: Could not find '$ROLE' role assignment for this APP_ID."
+            echo "         You may need to grant permissions before use from GitHub!"
+        fi
+    fi
+}
+# Now add two critical roles:
+AssignRole "Contributor"
+AssignRole "Role Based Access Control Administrator"
 
 # Summary with more detailed subscription information
 SUBSCRIPTION_NAME=$(az account show --query name -o tsv)
@@ -119,11 +134,15 @@ echo "  AZURE_CLIENT_ID:         $APP_ID"
 echo "  AZURE_TENANT_ID:         $TENANT_ID"
 echo "  AZURE_SUBSCRIPTION_ID:   $SUBSCRIPTION_ID"
 echo "==========================================================================="
-if [ -n "$ROLE_ASSIGNED" ]; then
-echo "The application was assigned 'Contributor' role at the subscription level."
-echo "This gives it access to manage ALL resources in the subscription."
-echo "==========================================================================="
-echo "SECURITY NOTE: Assigning Contributor at the subscription level grants broad"
-echo "permissions. Consider restricting to specific resource groups if possible."
-echo "==========================================================================="
-fi
+case "$ROLE_ASSIGNED" in
+ 2) echo "The application was assigned needed roles at the subscription level. This"
+    echo "allows management of ALL resources in the subscription."
+    echo "==========================================================================="
+    echo "SECURITY NOTE: Assigning roles at the subscription level grants broad"
+    echo "permissions. Consider restricting to specific resource groups if possible."
+    echo "==========================================================================="
+    ;;
+ 0) echo "WARNING: NO role assigments could be made or found."
+    ;;
+ *) echo "WARNING: SOME role assignments could not be made."
+esac
