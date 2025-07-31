@@ -74,8 +74,13 @@ jobs:
 
     # Phase 1: plan and apply AKS-infra resources, UP TO env.INFRA_TARGETS, because without a
     # working bastion tunnel, setup of the kubernetes and helm providers would fail.
+    # Without env.INFRA_TARGETS, this step will fail the first time round, because:
+    #  - no bastion VM exists, so
+    #  - no SOCKS tunnel can be started for the Kubernetes provider.
+    # This is extremely annoting, but may be unavoidable for now... [FIXME FIXME]
     - name: Terraform Plan 1 - AKS infra
-      run: terraform plan -var-file=${{ env.ENV }}.tfvars ${{ env.INFRA_TARGETS }} -out=${{ env.INFRA_PLAN }}
+      # run: terraform plan -var-file=${{ env.ENV }}.tfvars ${{ env.INFRA_TARGETS }} -out=${{ env.INFRA_PLAN }}
+      run: terraform plan -var-file=${{ env.ENV }}.tfvars -out=${{ env.INFRA_PLAN }}
       working-directory: ${{ env.working_directory }}
 
     - name: Upload 1 - AKS infra
@@ -83,8 +88,9 @@ jobs:
       with:
         path: ${{ env.working_directory }}/${{ env.INFRA_PLAN }}
 
+    # For verification: temporarily ALWAYS apply to prod, even in PRs... [FIXME FIXME]
     - name: Terraform Apply 1 - AKS infra
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      # if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       run: terraform apply -auto-approve ${{ env.INFRA_PLAN }}
       working-directory: ${{ env.working_directory }}
 
