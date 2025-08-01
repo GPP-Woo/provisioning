@@ -3,6 +3,7 @@
 # This uses a provisioned Azure Bastion with Linux VM to run a SOCKS5
 # tunnel into an Azure private-vnet with direct access to private-AKS
 # kubernetes API endpoint.
+# Requires az extension ssh be installed: `az extension add -n ssh`
 #
 # Usage: azure-private.sh [tofu|terraform] <plan|apply|...> [-chdir=...] [options...]
 #
@@ -76,7 +77,7 @@ az network bastion ssh \
   --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
   --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
   --debug -- -D $SOCKS_PORT -N -q &
-  # --only-show-errors -- -D $SOCKS_PORT -N -q 2>/dev/null &
+  # --only-show-errors -- -D $SOCKS_PORT -N -q &
 # Wait for the Socks5 SSH tunnel process to start listening
 for ((i=$MAX_WAIT_SECONDS; i>0; i--)); do
   line=$(fuser -n tcp $SOCKS_PORT 2>&1) && break

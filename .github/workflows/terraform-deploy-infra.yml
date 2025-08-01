@@ -106,6 +106,9 @@ jobs:
       run: terraform plan -var-file=${{ env.ENV }}.tfvars
       working-directory: ${{ env.working_directory }}
 
+    - name: Install az extension ssh for azure-private.sh bastion tunnel
+      run: az extension add -n ssh
+
     - name: Verify availability of bastion vm tunnel endpoint
       id: validateTunnel
       run: ./azure-private.sh validate
