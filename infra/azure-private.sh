@@ -95,9 +95,8 @@ echo "## SOCKS Tunnel started with PID: ${TUNNEL_PID}"
 trap "echo '## Closing tunnel.'; fuser -skn tcp ${SOCKS_PORT}; unlink \"${SSH_KEY}\"" EXIT
 
 if true; then
-  echo "## (Demo) Get AKS cluster version & nodes:"
-  echo "## kubectl using 'HTTPS_PROXY=socks5://localhost:$SOCKS_PORT':"
-  fuser -vn tcp $SOCKS_PORT
+  echo "## (Demo) Get AKS cluster version & nodes via HTTPS_PROXY=socks5://localhost:$SOCKS_PORT:"
+  # fuser -vn tcp $SOCKS_PORT
   export KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
   $TF $CHDIR output -raw aks_kubeconfig_raw | install -m 0600 /dev/stdin "$KUBECONFIG"
   HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl version
