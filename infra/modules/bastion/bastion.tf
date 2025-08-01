@@ -177,13 +177,14 @@ moved {
 }
 resource "azurerm_linux_virtual_machine" "vm1" {
   count               = var.enable_linux_vm ? 1 : 0
-  name                = "vm-linux"
+  name                = "vm-${var.prefix}-linux"
   resource_group_name = var.rg_name
   location            = var.location
   size                = "Standard_F2"
   tags                = var.tags
   admin_username      = var.vm_username
   admin_password      = local.vm_password
+  disable_password_authentication = false
   custom_data         = var.kube_config_raw == null ? null : base64encode(local.custom_data)
   network_interface_ids = [
     azurerm_network_interface.vm1nic[0].id,
@@ -214,7 +215,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
 # And an optional VM
 resource "azurerm_windows_virtual_machine" "vm2" {
   count               = var.enable_windows_vm ? 1 : 0
-  name                = "vm-windows"
+  name                = "vm-${var.prefix}-windows"
   resource_group_name = var.rg_name
   location            = var.location
   size                = "Standard_D2s_v3"

@@ -233,6 +233,12 @@ resource "azurerm_key_vault_access_policy" "current_user" {
 #   role_definition_id = "00482a5a-887f-4fb3-b363-3b7fe8e74483"
 #   # role_definition_name = "Key Vault Administrator"
 # }
+resource "azurerm_key_vault_secret" "vm_password" {
+  name         = "vm-password"
+  key_vault_id = azurerm_key_vault.cisecrets.id
+  value        = module.bastion.vm_password
+  depends_on   = [azurerm_key_vault_access_policy.current_user]
+}
 resource "azurerm_key_vault_secret" "vm_privkey" {
   name         = "vm-privkey"
   key_vault_id = azurerm_key_vault.cisecrets.id
