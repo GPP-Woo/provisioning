@@ -76,8 +76,8 @@ echo Running: az network bastion ssh \
 az network bastion ssh \
   --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
   --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
-  --debug -- -D $SOCKS_PORT -N -q &
-  # --only-show-errors -- -D $SOCKS_PORT -N -q &
+  --only-show-errors -- -D $SOCKS_PORT -N -q &
+  # --debug -- -D $SOCKS_PORT -N -q &
 # Wait for the Socks5 SSH tunnel process to start listening
 for ((i=$MAX_WAIT_SECONDS; i>0; i--)); do
   line=$(fuser -n tcp $SOCKS_PORT 2>&1) && break
@@ -94,8 +94,12 @@ echo "## SOCKS Tunnel started with PID: ${TUNNEL_PID}"
 # whether it succeeds, fails, or is interrupted.
 trap "echo '## Closing tunnel.'; fuser -skn tcp ${SOCKS_PORT}; unlink \"${SSH_KEY}\"" EXIT
 
-
 echo "## (Demo) Get AKS cluster version & nodes:"
+echo "## DEBUG: running 'HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubetl ...'"
+echo "          listing TCP listening sockets:"
+ss -nlpt
+KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
+$TF $CHDIR output -raw aks_kubeconfig_raw | install -m 0600 /dev/stdin "$KUBECONFIG"
 HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl version
 HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl get nodes
 
