@@ -98,6 +98,10 @@ jobs:
       working-directory: ${{ env.working_directory }}
       continue-on-error: true
 
+    - name: Terraform Apply 1 - Refresh outputs
+      run: terraform apply -refresh-only -auto-approve ${{ env.INFRA_PLAN }}
+      working-directory: ${{ env.working_directory }}
+
     - name: VERIFY RESULTS Plan 1 - AKS infra
       run: terraform plan -var-file=${{ env.ENV }}.tfvars
       working-directory: ${{ env.working_directory }}
