@@ -14,6 +14,7 @@
 # - JUMPBOX_IP  : the internal IP address of a Linux VM ('vm1_ip')
 # - SSH_USER    : the bastion VM username ('vm_username')
 # - SSH_KEY     : the SSH private key identity for authenticating as SSH_USER ('vm_privkey')
+# - KUBECONFIG  : for using kubectl demo commands ('aks_kubeconfig_raw')
 # 
 MAX_WAIT_SECONDS=60   # maximum time to wait for tunner setup, in seconds
 SOCKS_PORT=8180       # port to listen() for SOCKS5 clients such as kubectl
@@ -68,16 +69,15 @@ if [ -z "$BASTION_NAME" ]||[ -z "$RG_NAME" ]||[ -z "$JUMPBOX_IP" ]||[ -z "$SSH_U
     exit 1
 fi
 
-echo "## Open Socks5 SSH tunnel on tcp/$SOCKS_PORT via Azure Bastion VM..."
-echo Running: az network bastion ssh \
+echo "## Starting Socks5 SSH tunnel on tcp/$SOCKS_PORT via Azure Bastion VM:"
+echo "   az network bastion ssh" \
   --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
   --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
-  --debug -- -D $SOCKS_PORT -N -q
+  --only-show-errors -- -D $SOCKS_PORT -N -q
 az network bastion ssh \
   --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
   --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
   --only-show-errors -- -D $SOCKS_PORT -N -q &
-  # --debug -- -D $SOCKS_PORT -N -q &
 # Wait for the Socks5 SSH tunnel process to start listening
 for ((i=$MAX_WAIT_SECONDS; i>0; i--)); do
   line=$(fuser -n tcp $SOCKS_PORT 2>&1) && break
@@ -94,14 +94,15 @@ echo "## SOCKS Tunnel started with PID: ${TUNNEL_PID}"
 # whether it succeeds, fails, or is interrupted.
 trap "echo '## Closing tunnel.'; fuser -skn tcp ${SOCKS_PORT}; unlink \"${SSH_KEY}\"" EXIT
 
-echo "## (Demo) Get AKS cluster version & nodes:"
-echo "## DEBUG: running 'HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubetl ...'"
-echo "          listing TCP listening sockets:"
-ss -nlpt
-KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
-$TF $CHDIR output -raw aks_kubeconfig_raw | install -m 0600 /dev/stdin "$KUBECONFIG"
-HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl version
-HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl get nodes
+if true; then
+  echo "## (Demo) Get AKS cluster version & nodes:"
+  echo "## kubectl using 'HTTPS_PROXY=socks5://localhost:$SOCKS_PORT':"
+  fuser -vn tcp $SOCKS_PORT
+  export KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
+  $TF $CHDIR output -raw aks_kubeconfig_raw | install -m 0600 /dev/stdin "$KUBECONFIG"
+  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl version
+  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl get nodes
+fi
 
 # Pass all script arguments to the tofu/terraform command
 echo "## Running '${TF##*/} $CHDIR ${TF_ARGS[@]}'..."
