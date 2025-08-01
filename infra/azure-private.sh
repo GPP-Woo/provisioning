@@ -68,10 +68,15 @@ if [ -z "$BASTION_NAME" ]||[ -z "$RG_NAME" ]||[ -z "$JUMPBOX_IP" ]||[ -z "$SSH_U
 fi
 
 echo "## Open Socks5 SSH tunnel on tcp/$SOCKS_PORT via Azure Bastion VM..."
+echo Running: az network bastion ssh \
+  --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
+  --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
+  --debug -- -D $SOCKS_PORT -N -q
 az network bastion ssh \
   --name $BASTION_NAME --resource-group $RG_NAME --target-ip-address $JUMPBOX_IP \
   --username $SSH_USER --auth-type ssh-key --ssh-key $SSH_KEY \
-  --only-show-errors -- -D $SOCKS_PORT -N -q 2>/dev/null &
+  --debug -- -D $SOCKS_PORT -N -q &
+  # --only-show-errors -- -D $SOCKS_PORT -N -q 2>/dev/null &
 # Wait for the Socks5 SSH tunnel process to start listening
 for ((i=$MAX_WAIT_SECONDS; i>0; i--)); do
   line=$(fuser -n tcp $SOCKS_PORT 2>&1) && break
