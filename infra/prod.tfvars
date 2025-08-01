@@ -20,7 +20,7 @@ aks_node_pools = [{
   }
 ]
 # storage_account_name = "woo"
-vm_username = "BastionUser"
+# vm_username = "BastionUser"
 
 resource_tag_values = {
   Provisioner = "Github/Terraform v1.12.2"

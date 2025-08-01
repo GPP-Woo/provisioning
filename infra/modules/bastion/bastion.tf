@@ -184,7 +184,7 @@ resource "azurerm_linux_virtual_machine" "vm1" {
   tags                            = var.tags
   admin_username                  = var.vm_username
   admin_password                  = local.vm_password
-  disable_password_authentication = false
+  disable_password_authentication = true
   custom_data                     = var.kube_config_raw == null ? null : base64encode(local.custom_data)
   network_interface_ids = [
     azurerm_network_interface.vm1nic[0].id,

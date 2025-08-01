@@ -11,7 +11,7 @@ aks_node_pools = [{
   node_count = 3
 }]
 
-vm_username = "BastionUser"
+# vm_username = "BastionUser"
 
 resource_tag_values = {
   Provisioner = "Linux/OpenTofu v1.10.3"

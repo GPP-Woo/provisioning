@@ -64,7 +64,11 @@ variable "law_name" {
 variable "vm_username" {
   type        = string
   description = "Username for bastion VM(s)"
-  default     = "user"
+  default     = "BastionUser"
+  validation {
+    condition     = !contains(["root", "bin", "operator", "user"], var.vm_username)
+    error_message = "The (Linux) username MUST NOT clash with system-default groups. Choose another."
+  }
 }
 # variable "vm_password" {
 #   type = string
