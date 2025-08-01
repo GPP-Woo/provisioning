@@ -59,6 +59,7 @@ JUMPBOX_IP=$($TF $CHDIR output -raw vm1_ip); echo -n "."
 SSH_USER=$($TF $CHDIR output -raw vm_username); echo -n "."
 SSH_KEY=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.ssh/})
 $TF $CHDIR output -raw vm_privkey | install -m 0600 /dev/stdin "$SSH_KEY"; echo "."
+KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
 # Tunnel arguments pre-flight-check
 if [ -z "$BASTION_NAME" ]||[ -z "$RG_NAME" ]||[ -z "$JUMPBOX_IP" ]||[ -z "$SSH_USER" ]||[ ! -s "$SSH_KEY" ]; then
     echo "Error: Retrieval of one or more ${TF##*/} outputs failed:"
@@ -92,15 +93,13 @@ echo "## SOCKS Tunnel started with PID: ${TUNNEL_PID}"
 
 # The 'trap' command ensures that the tunnel is closed when the script exits,
 # whether it succeeds, fails, or is interrupted.
-trap "echo '## Closing tunnel.'; fuser -skn tcp ${SOCKS_PORT}; unlink \"${SSH_KEY}\"" EXIT
+trap "echo '## Closing tunnel.'; fuser -skn tcp ${SOCKS_PORT}; rm -f \"${SSH_KEY}\" \"${KUBECONFIG}\"" EXIT
 
-if true; then
+if false; then
   echo "## (Demo) Get AKS cluster version & nodes via HTTPS_PROXY=socks5://localhost:$SOCKS_PORT:"
-  # fuser -vn tcp $SOCKS_PORT
-  export KUBECONFIG=$(mktemp -p ${XDG_RUNTIME_DIR:-~/.kube/})
   $TF $CHDIR output -raw aks_kubeconfig_raw | install -m 0600 /dev/stdin "$KUBECONFIG"
-  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl version
-  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl get nodes
+  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl --kubeconfig=$KUBECONFIG version
+  HTTPS_PROXY=socks5://localhost:$SOCKS_PORT kubectl --kubeconfig=$KUBECONFIG get nodes
 fi
 
 # Pass all script arguments to the tofu/terraform command
