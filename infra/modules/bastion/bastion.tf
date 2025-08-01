@@ -25,13 +25,13 @@ variable "snet_bastion_id" {
 
 variable "vm_username" {
   type        = string
-  description = "Username for vm-1"
+  description = "VM operator username"
   default     = "admin"
 }
 variable "vm_password" {
   type        = string
   sensitive   = true
-  description = "Password for vm-1"
+  description = "VM operator password"
   default     = null
 }
 variable "enable_linux_vm" {
@@ -176,16 +176,16 @@ moved {
   to   = tls_private_key.vm1
 }
 resource "azurerm_linux_virtual_machine" "vm1" {
-  count               = var.enable_linux_vm ? 1 : 0
-  name                = "vm-${var.prefix}-linux"
-  resource_group_name = var.rg_name
-  location            = var.location
-  size                = "Standard_F2"
-  tags                = var.tags
-  admin_username      = var.vm_username
-  admin_password      = local.vm_password
+  count                           = var.enable_linux_vm ? 1 : 0
+  name                            = "vm-${var.prefix}-linux"
+  resource_group_name             = var.rg_name
+  location                        = var.location
+  size                            = "Standard_F2"
+  tags                            = var.tags
+  admin_username                  = var.vm_username
+  admin_password                  = local.vm_password
   disable_password_authentication = false
-  custom_data         = var.kube_config_raw == null ? null : base64encode(local.custom_data)
+  custom_data                     = var.kube_config_raw == null ? null : base64encode(local.custom_data)
   network_interface_ids = [
     azurerm_network_interface.vm1nic[0].id,
   ]

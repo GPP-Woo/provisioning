@@ -20,11 +20,11 @@ aks_node_pools = [{
   }
 ]
 # storage_account_name = "woo"
-vm_username = "operator"
+vm_username = "BastionUser"
 
 resource_tag_values = {
   Provisioner = "Github/Terraform v1.12.2"
   Environment = "prod"
 }
 
-ci_vault_name = "woo-cisecrets"
+# ci_vault_name = "wooprod-cisecrets"

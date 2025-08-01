@@ -80,10 +80,9 @@ jobs:
     # Without env.INFRA_TARGETS, this step will fail the first time round, because:
     #  - no bastion VM exists, so
     #  - no SOCKS tunnel can be started for the Kubernetes provider.
-    # This is extremely annoting, but may be unavoidable for now... [FIXME FIXME(?)]
+    # This is annoying, but may be unavoidable for now...
     - name: Terraform Plan 1 - AKS infra
-      # run: terraform plan -var-file=${{ env.ENV }}.tfvars ${{ env.INFRA_TARGETS }} -out=${{ env.INFRA_PLAN }}
-      run: terraform plan -out=${{ env.INFRA_PLAN }} -var-file=${{ env.ENV }}.tfvars #${{ env.INFRA_TARGETS }}
+      run: terraform plan -out=${{ env.INFRA_PLAN }} -var-file=${{ env.ENV }}.tfvars ${{ env.INFRA_TARGETS }}
       working-directory: ${{ env.working_directory }}
 
     - name: Upload 1 - AKS infra

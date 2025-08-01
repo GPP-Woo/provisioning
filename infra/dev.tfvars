@@ -18,4 +18,4 @@ resource_tag_values = {
   Environment = "dev"
 }
 
-ci_vault_name = "kv-devwoo-cisecrets-weu"
+# ci_vault_name = "woodev-cisecrets"
