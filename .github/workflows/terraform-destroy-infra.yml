@@ -48,11 +48,22 @@ jobs:
       run: terraform init -backend-config=${{ env.ENV }}.azurerm.tfbackend
       working-directory: ${{ env.working_directory }}
 
-    # Beware: sanity-check
     - name: Terraform Validate
       id: validate
       run: terraform validate
       working-directory: ${{ env.working_directory }}
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
+    - name: Install Bastion extension
+      run: az extension add --name bastion
+    - name: Install az extension ssh for azure-private.sh bastion tunnel
+      run: az extension add -n ssh
 
     # Phase 1: let Terraform destroy all resources from Kubernetes and Helm providers
     - name: Terraform Plan 1 - DESTROY K8S
